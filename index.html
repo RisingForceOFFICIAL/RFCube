@@ -549,12 +549,13 @@ function createParticle(x, y, explosion = false) {
   });
 }
 
-// 3D projection
+// 3D projection - top-down angled view
 function project(x, y, z) {
-  const fov = 450;
+  const fov = 500;
   const scale = fov / (fov + z);
   const projX = canvas.width / 2 + x * scale;
-  const projY = canvas.height * 0.4 + y * scale;
+  // Camera looking down from above - y goes up, z goes into screen
+  const projY = canvas.height * 0.15 + z * 0.6 * scale + y * scale * 0.3;
   return { x: projX, y: projY, scale: scale };
 }
 
