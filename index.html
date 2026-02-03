@@ -551,10 +551,10 @@ function createParticle(x, y, explosion = false) {
 
 // 3D projection
 function project(x, y, z) {
-  const fov = 400;
+  const fov = 450;
   const scale = fov / (fov + z);
   const projX = canvas.width / 2 + x * scale;
-  const projY = canvas.height * 0.55 + y * scale;
+  const projY = canvas.height * 0.4 + y * scale;
   return { x: projX, y: projY, scale: scale };
 }
 
