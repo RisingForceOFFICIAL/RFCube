@@ -549,13 +549,13 @@ function createParticle(x, y, explosion = false) {
   });
 }
 
-// 3D projection - top-down angled view
+// 3D projection - behind and above player, looking forward
 function project(x, y, z) {
-  const fov = 500;
+  const fov = 400;
   const scale = fov / (fov + z);
   const projX = canvas.width / 2 + x * scale;
-  // Camera looking down from above - y goes up, z goes into screen
-  const projY = canvas.height * 0.15 + z * 0.6 * scale + y * scale * 0.3;
+  // Horizon at 35% from top, things get lower as they get closer
+  const projY = canvas.height * 0.35 + (100 - y) * scale;
   return { x: projX, y: projY, scale: scale };
 }
 
