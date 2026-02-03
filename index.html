@@ -640,35 +640,18 @@ function drawTunnel() {
     ctx.stroke();
   }
   
-  // Horizontal glow lines across floor
-  for (let z = 0; z < 800; z += 80) {
-    const adjustedZ = (z + tunnelOffset * 2) % 800;
-    const p1 = project(-tunnelWidth/2, 0, adjustedZ);
-    const p2 = project(tunnelWidth/2, 0, adjustedZ);
-    const brightness = Math.max(0.1, 0.5 - adjustedZ / 1600);
-    
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = `rgba(103, 232, 249, ${brightness})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-  
-  // Lane divider lines (dashed)
+  // Solid lane divider lines
   for (let i = 1; i < numLanes; i++) {
     const x = getLaneX(i) - laneWidth/2;
     ctx.beginPath();
-    ctx.setLineDash([10, 20]);
     for (let z = 0; z < 800; z += 30) {
       const p = project(x, 0, z);
       if (z === 0) ctx.moveTo(p.x, p.y);
       else ctx.lineTo(p.x, p.y);
     }
-    ctx.strokeStyle = 'rgba(103, 232, 249, 0.3)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.15)';
+    ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.setLineDash([]);
   }
 }
 
