@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RFCube — 3D Tunnel Runner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬛</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111;
+  --accent: #0ea5e9;
+  --accent2: #67e8f9;
+  --accent-glow: rgba(14, 165, 233, 0.5);
+  --text: #f0f0f0;
+  --text2: #888;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#gameCanvas {
+  display: block;
+  background: var(--bg);
+}
+
+/* UI Overlay */
+.ui-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.score-display {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+.score-label {
+  font-size: 12px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.speed-display {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.high-score {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--text2);
+}
+
+/* Menu Screen */
+.menu-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.menu-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.logo-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 0 40px var(--accent-glow);
+}
+
+.logo h1 {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -2px;
+}
+
+.logo h1 span {
+  color: var(--accent);
+}
+
+.menu-subtitle {
+  color: var(--text2);
+  font-size: 16px;
+  margin-bottom: 48px;
+}
+
+.menu-btn {
+  padding: 16px 48px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 30px var(--accent-glow);
+  margin-bottom: 16px;
+}
+
+.menu-btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 0 50px var(--accent-glow);
+}
+
+.menu-btn-secondary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.menu-btn-secondary:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.controls-info {
+  margin-top: 48px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.controls-info h3 {
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.key-hints {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.key-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+/* Game Over Screen */
+.gameover-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.gameover-screen.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.gameover-title {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 24px;
+  text-shadow: 0 0 30px var(--accent-glow);
+}
+
+.final-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 72px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.final-label {
+  color: var(--text2);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+}
+
+.new-record {
+  color: var(--accent2);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* Pause */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.pause-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pause-text {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.pause-hint {
+  color: var(--text2);
+  font-size: 14px;
+}
+
+/* Mobile Controls */
+.mobile-controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 16px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.mobile-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(14, 165, 233, 0.2);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.mobile-btn:active {
+  background: var(--accent);
+  color: #000;
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .mobile-controls {
+    display: flex;
+  }
+  .controls-info {
+    display: none;
+  }
+  .logo h1 {
+    font-size: 36px;
+  }
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+}
+
+/* Particles container */
+#particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div class="ui-overlay" id="uiOverlay">
+  <div class="score-display">
+    <div class="score-label">Score</div>
+    <div id="score">0</div>
+  </div>
+  <div class="high-score">BEST: <span id="highScore">0</span></div>
+  <div class="speed-display">SPEED: <span id="speed">1.0</span>x</div>
+</div>
+
+<div class="mobile-controls" id="mobileControls">
+  <button class="mobile-btn" id="leftBtn">←</button>
+  <button class="mobile-btn" id="rightBtn">→</button>
+</div>
+
+<!-- Menu Screen -->
+<div class="menu-screen" id="menuScreen">
+  <div class="logo">
+    <div class="logo-icon">⬛</div>
+    <h1><span>RF</span>Cube</h1>
+  </div>
+  <p class="menu-subtitle">3D Tunnel Runner</p>
+  <button class="menu-btn" onclick="startGame()">▶ PLAY</button>
+  <button class="menu-btn menu-btn-secondary" onclick="showControls()">⚙ CONTROLS</button>
+  <div class="controls-info">
+    <h3>How to Play</h3>
+    <p>Dodge the obstacles and survive as long as you can!</p>
+    <div class="key-hints">
+      <div class="key-hint"><span class="key">←</span> or <span class="key">A</span> Move Left</div>
+      <div class="key-hint"><span class="key">→</span> or <span class="key">D</span> Move Right</div>
+      <div class="key-hint"><span class="key">Space</span> Pause</div>
+    </div>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div class="gameover-screen" id="gameoverScreen">
+  <div class="gameover-title">GAME OVER</div>
+  <div class="final-score" id="finalScore">0</div>
+  <div class="final-label">Final Score</div>
+  <div class="new-record" id="newRecord" style="display:none">🏆 NEW HIGH SCORE!</div>
+  <button class="menu-btn" onclick="startGame()">↻ RETRY</button>
+  <button class="menu-btn menu-btn-secondary" onclick="showMenu()">← MENU</button>
+</div>
+
+<!-- Pause Overlay -->
+<div class="pause-overlay" id="pauseOverlay">
+  <div class="pause-text">PAUSED</div>
+  <p class="pause-hint">Press SPACE to resume</p>
+</div>
+
+<div id="particles"></div>
+
+<script>
+// Canvas setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Game state
+let gameRunning = false;
+let gamePaused = false;
+let score = 0;
+let highScore = parseInt(localStorage.getItem('rfcube-highscore') || '0');
+let speed = 1;
+let baseSpeed = 8;
+let laneWidth = 100;
+let numLanes = 5;
+let playerLane = 2; // Middle lane
+let targetLane = 2;
+let playerX = 0;
+let obstacles = [];
+let particles = [];
+let tunnelOffset = 0;
+let frameCount = 0;
+
+// Colors
+const ACCENT = '#0ea5e9';
+const ACCENT2 = '#67e8f9';
+const BG = '#0a0a0a';
+
+// Player
+const player = {
+  width: 40,
+  height: 40,
+  y: 0,
+  z: 50
+};
+
+// Initialize
+document.getElementById('highScore').textContent = highScore;
+
+function startGame() {
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('gameoverScreen').classList.remove('active');
+  document.getElementById('uiOverlay').style.display = 'block';
+  
+  // Reset game state
+  score = 0;
+  speed = 1;
+  playerLane = 2;
+  targetLane = 2;
+  playerX = 0;
+  obstacles = [];
+  particles = [];
+  frameCount = 0;
+  gameRunning = true;
+  gamePaused = false;
+  
+  updateUI();
+  gameLoop();
+}
+
+function showMenu() {
+  gameRunning = false;
+  document.getElementById('menuScreen').classList.remove('hidden');
+  document.getElementById('gameoverScreen').classList.remove('active');
+  document.getElementById('uiOverlay').style.display = 'none';
+}
+
+function showControls() {
+  // Already shown in menu
+}
+
+function gameOver() {
+  gameRunning = false;
+  
+  // Check high score
+  const isNewRecord = score > highScore;
+  if (isNewRecord) {
+    highScore = score;
+    localStorage.setItem('rfcube-highscore', highScore);
+    document.getElementById('highScore').textContent = highScore;
+  }
+  
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('newRecord').style.display = isNewRecord ? 'block' : 'none';
+  document.getElementById('gameoverScreen').classList.add('active');
+  
+  // Explosion particles
+  for (let i = 0; i < 50; i++) {
+    createParticle(canvas.width / 2, canvas.height * 0.7, true);
+  }
+}
+
+function togglePause() {
+  if (!gameRunning) return;
+  gamePaused = !gamePaused;
+  document.getElementById('pauseOverlay').classList.toggle('active', gamePaused);
+  if (!gamePaused) gameLoop();
+}
+
+// Obstacles
+function spawnObstacle() {
+  const lane = Math.floor(Math.random() * numLanes);
+  const width = Math.random() < 0.3 ? 2 : 1; // Sometimes spawn double-wide
+  
+  obstacles.push({
+    lane: lane,
+    width: width,
+    z: 1000,
+    height: 30 + Math.random() * 20
+  });
+}
+
+// Particles
+function createParticle(x, y, explosion = false) {
+  const angle = Math.random() * Math.PI * 2;
+  const speed = explosion ? 3 + Math.random() * 5 : 1 + Math.random() * 2;
+  particles.push({
+    x: x,
+    y: y,
+    vx: Math.cos(angle) * speed * (explosion ? 1 : 0.3),
+    vy: Math.sin(angle) * speed * (explosion ? 1 : -1),
+    life: 1,
+    decay: 0.02 + Math.random() * 0.02,
+    size: explosion ? 3 + Math.random() * 4 : 2 + Math.random() * 2,
+    color: Math.random() < 0.5 ? ACCENT : ACCENT2
+  });
+}
+
+// 3D projection
+function project(x, y, z) {
+  const fov = 300;
+  const scale = fov / (fov + z);
+  const projX = canvas.width / 2 + x * scale;
+  const projY = canvas.height * 0.7 + y * scale;
+  return { x: projX, y: projY, scale: scale };
+}
+
+// Get lane X position
+function getLaneX(lane) {
+  return (lane - (numLanes - 1) / 2) * laneWidth;
+}
+
+// Draw tunnel
+function drawTunnel() {
+  const tunnelWidth = numLanes * laneWidth + 100;
+  const tunnelHeight = 200;
+  
+  // Draw tunnel segments
+  for (let z = 800; z >= 0; z -= 50) {
+    const adjustedZ = (z + tunnelOffset) % 800;
+    
+    // Floor
+    const fl = project(-tunnelWidth/2, tunnelHeight/2, adjustedZ);
+    const fr = project(tunnelWidth/2, tunnelHeight/2, adjustedZ);
+    const bl = project(-tunnelWidth/2, tunnelHeight/2, adjustedZ + 50);
+    const br = project(tunnelWidth/2, tunnelHeight/2, adjustedZ + 50);
+    
+    // Draw floor quad
+    ctx.beginPath();
+    ctx.moveTo(fl.x, fl.y);
+    ctx.lineTo(fr.x, fr.y);
+    ctx.lineTo(br.x, br.y);
+    ctx.lineTo(bl.x, bl.y);
+    ctx.closePath();
+    
+    const brightness = Math.max(0.05, 0.2 - adjustedZ / 4000);
+    ctx.fillStyle = `rgba(14, 165, 233, ${brightness})`;
+    ctx.fill();
+    
+    // Grid lines
+    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness * 1.5})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  
+  // Lane markers
+  for (let i = 0; i <= numLanes; i++) {
+    const x = getLaneX(i - 0.5);
+    ctx.beginPath();
+    for (let z = 0; z < 800; z += 50) {
+      const p = project(x, 100, z);
+      if (z === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// Draw player
+function drawPlayer() {
+  // Smooth lane transition
+  const targetX = getLaneX(targetLane);
+  playerX += (targetX - playerX) * 0.15;
+  
+  const p = project(playerX, 0, player.z);
+  const size = player.width * p.scale;
+  
+  // Glow
+  const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+  gradient.addColorStop(0, 'rgba(14, 165, 233, 0.3)');
+  gradient.addColorStop(1, 'transparent');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(p.x - size * 2, p.y - size * 2, size * 4, size * 4);
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + size * 0.8, size * 0.8, size * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Cube
+  ctx.fillStyle = ACCENT;
+  ctx.shadowColor = ACCENT;
+  ctx.shadowBlur = 20;
+  ctx.fillRect(p.x - size/2, p.y - size, size, size);
+  
+  // Highlight
+  ctx.fillStyle = ACCENT2;
+  ctx.fillRect(p.x - size/2, p.y - size, size, size * 0.3);
+  
+  ctx.shadowBlur = 0;
+  
+  // Trail particles
+  if (frameCount % 3 === 0) {
+    createParticle(p.x + (Math.random() - 0.5) * size, p.y);
+  }
+}
+
+// Draw obstacles
+function drawObstacles() {
+  obstacles.forEach(obs => {
+    const x = getLaneX(obs.lane);
+    const width = obs.width * laneWidth * 0.8;
+    
+    const p = project(x, 0, obs.z);
+    const w = width * p.scale;
+    const h = obs.height * p.scale;
+    
+    if (p.scale > 0.05) {
+      // Glow
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 15;
+      
+      // Obstacle
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(p.x - w/2, p.y - h, w, h);
+      
+      // Highlight
+      ctx.fillStyle = '#f87171';
+      ctx.fillRect(p.x - w/2, p.y - h, w, h * 0.2);
+      
+      ctx.shadowBlur = 0;
+    }
+  });
+}
+
+// Draw particles
+function drawParticles() {
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      return;
+    }
+    
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+// Collision detection
+function checkCollision() {
+  const playerLeft = playerX - player.width / 2;
+  const playerRight = playerX + player.width / 2;
+  
+  for (const obs of obstacles) {
+    if (obs.z > player.z - 30 && obs.z < player.z + 30) {
+      const obsLeft = getLaneX(obs.lane) - (obs.width * laneWidth * 0.4);
+      const obsRight = getLaneX(obs.lane) + (obs.width * laneWidth * 0.4);
+      
+      if (playerRight > obsLeft && playerLeft < obsRight) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Update UI
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('speed').textContent = speed.toFixed(1);
+}
+
+// Game loop
+function gameLoop() {
+  if (!gameRunning || gamePaused) return;
+  
+  // Clear
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Update
+  frameCount++;
+  tunnelOffset += baseSpeed * speed;
+  if (tunnelOffset >= 50) tunnelOffset = 0;
+  
+  // Spawn obstacles
+  if (frameCount % Math.max(30, 60 - speed * 5) === 0) {
+    spawnObstacle();
+  }
+  
+  // Update obstacles
+  obstacles.forEach((obs, i) => {
+    obs.z -= baseSpeed * speed;
+    if (obs.z < -50) {
+      obstacles.splice(i, 1);
+      score += 10;
+      updateUI();
+    }
+  });
+  
+  // Increase speed over time
+  if (frameCount % 300 === 0 && speed < 3) {
+    speed += 0.1;
+    updateUI();
+  }
+  
+  // Draw
+  drawTunnel();
+  drawObstacles();
+  drawPlayer();
+  drawParticles();
+  
+  // Check collision
+  if (checkCollision()) {
+    gameOver();
+    return;
+  }
+  
+  requestAnimationFrame(gameLoop);
+}
+
+// Controls
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameRunning) togglePause();
+    return;
+  }
+  
+  if (!gameRunning || gamePaused) return;
+  
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+    if (targetLane > 0) targetLane--;
+  }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+    if (targetLane < numLanes - 1) targetLane++;
+  }
+});
+
+// Mobile controls
+document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (gameRunning && !gamePaused && targetLane > 0) targetLane--;
+});
+
+document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (gameRunning && !gamePaused && targetLane < numLanes - 1) targetLane++;
+});
+
+// Touch swipe
+let touchStartX = 0;
+canvas.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+});
+
+canvas.addEventListener('touchend', (e) => {
+  if (!gameRunning || gamePaused) return;
+  const touchEndX = e.changedTouches[0].clientX;
+  const diff = touchEndX - touchStartX;
+  
+  if (Math.abs(diff) > 50) {
+    if (diff > 0 && targetLane < numLanes - 1) targetLane++;
+    if (diff < 0 && targetLane > 0) targetLane--;
+  }
+});
+
+// Prevent scroll on mobile
+document.addEventListener('touchmove', (e) => {
+  if (gameRunning) e.preventDefault();
+}, { passive: false });
+</script>
+</body>
+</html>
