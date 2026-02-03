@@ -564,83 +564,74 @@ function getLaneX(lane) {
   return (lane - (numLanes - 1) / 2) * laneWidth;
 }
 
-// Draw tunnel
+// Draw tunnel - Clean neon style
 function drawTunnel() {
   const tunnelWidth = numLanes * laneWidth + 100;
-  const wallHeight = 150;
   
-  // Draw floor tiles with checkerboard pattern - SOLID colors
-  for (let z = 800; z >= 0; z -= 40) {
-    const adjustedZ = (z + tunnelOffset) % 800;
-    
-    for (let i = 0; i < numLanes; i++) {
-      const x1 = getLaneX(i) - laneWidth/2;
-      const x2 = getLaneX(i) + laneWidth/2;
-      
-      const fl = project(x1, 0, adjustedZ);
-      const fr = project(x2, 0, adjustedZ);
-      const bl = project(x1, 0, adjustedZ + 40);
-      const br = project(x2, 0, adjustedZ + 40);
-      
-      // Checkerboard with solid colors
-      const isLight = (i + Math.floor(adjustedZ / 40)) % 2 === 0;
-      const depth = Math.max(0.3, 1 - adjustedZ / 1000);
-      const r = isLight ? Math.floor(20 * depth) : Math.floor(12 * depth);
-      const g = isLight ? Math.floor(60 * depth) : Math.floor(40 * depth);
-      const b = isLight ? Math.floor(80 * depth) : Math.floor(55 * depth);
-      
-      ctx.beginPath();
-      ctx.moveTo(fl.x, fl.y);
-      ctx.lineTo(fr.x, fr.y);
-      ctx.lineTo(br.x, br.y);
-      ctx.lineTo(bl.x, bl.y);
-      ctx.closePath();
-      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-      ctx.fill();
-    }
-  }
+  // Solid black floor
+  const floorLeft = project(-tunnelWidth/2, 0, 0);
+  const floorRight = project(tunnelWidth/2, 0, 0);
+  const floorBackLeft = project(-tunnelWidth/2, 0, 800);
+  const floorBackRight = project(tunnelWidth/2, 0, 800);
   
-  // Draw side walls - SOLID colors
-  for (let z = 800; z >= 0; z -= 40) {
-    const adjustedZ = (z + tunnelOffset) % 800;
-    const depth = Math.max(0.3, 1 - adjustedZ / 1000);
-    
-    // Left wall
-    const lwb = project(-tunnelWidth/2, 0, adjustedZ);
-    const lwt = project(-tunnelWidth/2, -wallHeight, adjustedZ);
-    const lwb2 = project(-tunnelWidth/2, 0, adjustedZ + 40);
-    const lwt2 = project(-tunnelWidth/2, -wallHeight, adjustedZ + 40);
+  ctx.beginPath();
+  ctx.moveTo(floorLeft.x, floorLeft.y);
+  ctx.lineTo(floorRight.x, floorRight.y);
+  ctx.lineTo(floorBackRight.x, floorBackRight.y);
+  ctx.lineTo(floorBackLeft.x, floorBackLeft.y);
+  ctx.closePath();
+  ctx.fillStyle = '#080810';
+  ctx.fill();
+  
+  // Neon grid lines going into distance
+  ctx.shadowColor = ACCENT;
+  ctx.shadowBlur = 8;
+  
+  // Horizontal lines
+  for (let z = 0; z < 800; z += 60) {
+    const adjustedZ = (z + tunnelOffset * 1.5) % 800;
+    const p1 = project(-tunnelWidth/2, 0, adjustedZ);
+    const p2 = project(tunnelWidth/2, 0, adjustedZ);
+    const alpha = Math.max(0.1, 1 - adjustedZ / 800);
     
     ctx.beginPath();
-    ctx.moveTo(lwb.x, lwb.y);
-    ctx.lineTo(lwt.x, lwt.y);
-    ctx.lineTo(lwt2.x, lwt2.y);
-    ctx.lineTo(lwb2.x, lwb2.y);
-    ctx.closePath();
-    ctx.fillStyle = `rgb(${Math.floor(15 * depth)}, ${Math.floor(45 * depth)}, ${Math.floor(60 * depth)})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgb(${Math.floor(20 * depth)}, ${Math.floor(80 * depth)}, ${Math.floor(110 * depth)})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Right wall
-    const rwb = project(tunnelWidth/2, 0, adjustedZ);
-    const rwt = project(tunnelWidth/2, -wallHeight, adjustedZ);
-    const rwb2 = project(tunnelWidth/2, 0, adjustedZ + 40);
-    const rwt2 = project(tunnelWidth/2, -wallHeight, adjustedZ + 40);
-    
-    ctx.beginPath();
-    ctx.moveTo(rwb.x, rwb.y);
-    ctx.lineTo(rwt.x, rwt.y);
-    ctx.lineTo(rwt2.x, rwt2.y);
-    ctx.lineTo(rwb2.x, rwb2.y);
-    ctx.closePath();
-    ctx.fillStyle = `rgb(${Math.floor(15 * depth)}, ${Math.floor(45 * depth)}, ${Math.floor(60 * depth)})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgb(${Math.floor(20 * depth)}, ${Math.floor(80 * depth)}, ${Math.floor(110 * depth)})`;
-    ctx.lineWidth = 1;
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(14, 165, 233, ${alpha * 0.8})`;
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
+  
+  // Vertical lane lines
+  for (let i = 0; i <= numLanes; i++) {
+    const x = getLaneX(i) - laneWidth/2;
+    ctx.beginPath();
+    const start = project(x, 0, 0);
+    const end = project(x, 0, 800);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  
+  // Edge glow lines
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = ACCENT2;
+  
+  // Left edge
+  ctx.beginPath();
+  ctx.moveTo(floorLeft.x, floorLeft.y);
+  ctx.lineTo(floorBackLeft.x, floorBackLeft.y);
+  ctx.stroke();
+  
+  // Right edge
+  ctx.beginPath();
+  ctx.moveTo(floorRight.x, floorRight.y);
+  ctx.lineTo(floorBackRight.x, floorBackRight.y);
+  ctx.stroke();
+  
+  ctx.shadowBlur = 0;
 }
 
 // Draw player
