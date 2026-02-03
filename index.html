@@ -569,7 +569,7 @@ function drawTunnel() {
   const tunnelWidth = numLanes * laneWidth + 100;
   const wallHeight = 150;
   
-  // Draw floor tiles with checkerboard pattern
+  // Draw floor tiles with checkerboard pattern - SOLID colors
   for (let z = 800; z >= 0; z -= 40) {
     const adjustedZ = (z + tunnelOffset) % 800;
     
@@ -582,10 +582,12 @@ function drawTunnel() {
       const bl = project(x1, 0, adjustedZ + 40);
       const br = project(x2, 0, adjustedZ + 40);
       
-      // Checkerboard
+      // Checkerboard with solid colors
       const isLight = (i + Math.floor(adjustedZ / 40)) % 2 === 0;
-      const baseBright = Math.max(0.08, 0.25 - adjustedZ / 3000);
-      const brightness = isLight ? baseBright : baseBright * 0.5;
+      const depth = Math.max(0.3, 1 - adjustedZ / 1000);
+      const r = isLight ? Math.floor(20 * depth) : Math.floor(12 * depth);
+      const g = isLight ? Math.floor(60 * depth) : Math.floor(40 * depth);
+      const b = isLight ? Math.floor(80 * depth) : Math.floor(55 * depth);
       
       ctx.beginPath();
       ctx.moveTo(fl.x, fl.y);
@@ -593,15 +595,15 @@ function drawTunnel() {
       ctx.lineTo(br.x, br.y);
       ctx.lineTo(bl.x, bl.y);
       ctx.closePath();
-      ctx.fillStyle = `rgba(14, 165, 233, ${brightness})`;
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       ctx.fill();
     }
   }
   
-  // Draw side walls
+  // Draw side walls - SOLID colors
   for (let z = 800; z >= 0; z -= 40) {
     const adjustedZ = (z + tunnelOffset) % 800;
-    const brightness = Math.max(0.1, 0.4 - adjustedZ / 2500);
+    const depth = Math.max(0.3, 1 - adjustedZ / 1000);
     
     // Left wall
     const lwb = project(-tunnelWidth/2, 0, adjustedZ);
@@ -615,9 +617,9 @@ function drawTunnel() {
     ctx.lineTo(lwt2.x, lwt2.y);
     ctx.lineTo(lwb2.x, lwb2.y);
     ctx.closePath();
-    ctx.fillStyle = `rgba(6, 80, 120, ${brightness * 0.6})`;
+    ctx.fillStyle = `rgb(${Math.floor(15 * depth)}, ${Math.floor(45 * depth)}, ${Math.floor(60 * depth)})`;
     ctx.fill();
-    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness})`;
+    ctx.strokeStyle = `rgb(${Math.floor(20 * depth)}, ${Math.floor(80 * depth)}, ${Math.floor(110 * depth)})`;
     ctx.lineWidth = 1;
     ctx.stroke();
     
@@ -633,23 +635,9 @@ function drawTunnel() {
     ctx.lineTo(rwt2.x, rwt2.y);
     ctx.lineTo(rwb2.x, rwb2.y);
     ctx.closePath();
-    ctx.fillStyle = `rgba(6, 80, 120, ${brightness * 0.6})`;
+    ctx.fillStyle = `rgb(${Math.floor(15 * depth)}, ${Math.floor(45 * depth)}, ${Math.floor(60 * depth)})`;
     ctx.fill();
-    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-  
-  // Solid lane divider lines
-  for (let i = 1; i < numLanes; i++) {
-    const x = getLaneX(i) - laneWidth/2;
-    ctx.beginPath();
-    for (let z = 0; z < 800; z += 30) {
-      const p = project(x, 0, z);
-      if (z === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    }
-    ctx.strokeStyle = 'rgba(14, 165, 233, 0.15)';
+    ctx.strokeStyle = `rgb(${Math.floor(20 * depth)}, ${Math.floor(80 * depth)}, ${Math.floor(110 * depth)})`;
     ctx.lineWidth = 1;
     ctx.stroke();
   }
