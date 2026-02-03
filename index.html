@@ -567,48 +567,108 @@ function getLaneX(lane) {
 // Draw tunnel
 function drawTunnel() {
   const tunnelWidth = numLanes * laneWidth + 100;
-  const tunnelHeight = 200;
+  const wallHeight = 150;
   
-  // Draw tunnel segments
-  for (let z = 800; z >= 0; z -= 50) {
+  // Draw floor tiles with checkerboard pattern
+  for (let z = 800; z >= 0; z -= 40) {
     const adjustedZ = (z + tunnelOffset) % 800;
     
-    // Floor
-    const fl = project(-tunnelWidth/2, tunnelHeight/2, adjustedZ);
-    const fr = project(tunnelWidth/2, tunnelHeight/2, adjustedZ);
-    const bl = project(-tunnelWidth/2, tunnelHeight/2, adjustedZ + 50);
-    const br = project(tunnelWidth/2, tunnelHeight/2, adjustedZ + 50);
+    for (let i = 0; i < numLanes; i++) {
+      const x1 = getLaneX(i) - laneWidth/2;
+      const x2 = getLaneX(i) + laneWidth/2;
+      
+      const fl = project(x1, 0, adjustedZ);
+      const fr = project(x2, 0, adjustedZ);
+      const bl = project(x1, 0, adjustedZ + 40);
+      const br = project(x2, 0, adjustedZ + 40);
+      
+      // Checkerboard
+      const isLight = (i + Math.floor(adjustedZ / 40)) % 2 === 0;
+      const baseBright = Math.max(0.08, 0.25 - adjustedZ / 3000);
+      const brightness = isLight ? baseBright : baseBright * 0.5;
+      
+      ctx.beginPath();
+      ctx.moveTo(fl.x, fl.y);
+      ctx.lineTo(fr.x, fr.y);
+      ctx.lineTo(br.x, br.y);
+      ctx.lineTo(bl.x, bl.y);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(14, 165, 233, ${brightness})`;
+      ctx.fill();
+    }
+  }
+  
+  // Draw side walls
+  for (let z = 800; z >= 0; z -= 40) {
+    const adjustedZ = (z + tunnelOffset) % 800;
+    const brightness = Math.max(0.1, 0.4 - adjustedZ / 2500);
     
-    // Draw floor quad
+    // Left wall
+    const lwb = project(-tunnelWidth/2, 0, adjustedZ);
+    const lwt = project(-tunnelWidth/2, -wallHeight, adjustedZ);
+    const lwb2 = project(-tunnelWidth/2, 0, adjustedZ + 40);
+    const lwt2 = project(-tunnelWidth/2, -wallHeight, adjustedZ + 40);
+    
     ctx.beginPath();
-    ctx.moveTo(fl.x, fl.y);
-    ctx.lineTo(fr.x, fr.y);
-    ctx.lineTo(br.x, br.y);
-    ctx.lineTo(bl.x, bl.y);
+    ctx.moveTo(lwb.x, lwb.y);
+    ctx.lineTo(lwt.x, lwt.y);
+    ctx.lineTo(lwt2.x, lwt2.y);
+    ctx.lineTo(lwb2.x, lwb2.y);
     ctx.closePath();
-    
-    const brightness = Math.max(0.05, 0.2 - adjustedZ / 4000);
-    ctx.fillStyle = `rgba(14, 165, 233, ${brightness})`;
+    ctx.fillStyle = `rgba(6, 80, 120, ${brightness * 0.6})`;
     ctx.fill();
+    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
     
-    // Grid lines
-    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness * 1.5})`;
+    // Right wall
+    const rwb = project(tunnelWidth/2, 0, adjustedZ);
+    const rwt = project(tunnelWidth/2, -wallHeight, adjustedZ);
+    const rwb2 = project(tunnelWidth/2, 0, adjustedZ + 40);
+    const rwt2 = project(tunnelWidth/2, -wallHeight, adjustedZ + 40);
+    
+    ctx.beginPath();
+    ctx.moveTo(rwb.x, rwb.y);
+    ctx.lineTo(rwt.x, rwt.y);
+    ctx.lineTo(rwt2.x, rwt2.y);
+    ctx.lineTo(rwb2.x, rwb2.y);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(6, 80, 120, ${brightness * 0.6})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(14, 165, 233, ${brightness})`;
     ctx.lineWidth = 1;
     ctx.stroke();
   }
   
-  // Lane markers
-  for (let i = 0; i <= numLanes; i++) {
-    const x = getLaneX(i - 0.5);
+  // Horizontal glow lines across floor
+  for (let z = 0; z < 800; z += 80) {
+    const adjustedZ = (z + tunnelOffset * 2) % 800;
+    const p1 = project(-tunnelWidth/2, 0, adjustedZ);
+    const p2 = project(tunnelWidth/2, 0, adjustedZ);
+    const brightness = Math.max(0.1, 0.5 - adjustedZ / 1600);
+    
     ctx.beginPath();
-    for (let z = 0; z < 800; z += 50) {
-      const p = project(x, 100, z);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(103, 232, 249, ${brightness})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  
+  // Lane divider lines (dashed)
+  for (let i = 1; i < numLanes; i++) {
+    const x = getLaneX(i) - laneWidth/2;
+    ctx.beginPath();
+    ctx.setLineDash([10, 20]);
+    for (let z = 0; z < 800; z += 30) {
+      const p = project(x, 0, z);
       if (z === 0) ctx.moveTo(p.x, p.y);
       else ctx.lineTo(p.x, p.y);
     }
-    ctx.strokeStyle = 'rgba(14, 165, 233, 0.2)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(103, 232, 249, 0.3)';
+    ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 
